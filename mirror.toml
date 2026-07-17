@@ -1,0 +1,36 @@
+# Curated subset of images.linuxcontainers.org mirrored to
+# image.arcboxcdn.com/linux. Adding a distro here starts mirroring it on the
+# next scheduled sync; removing one stops future syncs but never removes
+# already-published builds from the index (add-only retention).
+
+[mirror]
+upstream = "https://images.linuxcontainers.org"
+arches = ["arm64", "amd64"]
+variants = ["default"]
+# Newest builds listed per stream in index.json; older objects stay on the
+# CDN for pinned references but drop out of the index.
+keep_versions = 4
+
+# Releases are pinned (not "all upstream") to bound the first sync: an
+# unpinned distro mirrors every historical release upstream still builds,
+# which overflows a GitHub runner's disk. Bump pins when new releases land.
+
+[[distros]]
+name = "ubuntu"
+releases = ["noble", "resolute"]
+
+[[distros]]
+name = "debian"
+releases = ["trixie", "forky"]
+
+[[distros]]
+name = "alpine"
+releases = ["3.23", "3.24"]
+
+[[distros]]
+name = "fedora"
+releases = ["43", "44"]
+
+[[distros]]
+name = "archlinux"
+releases = ["current"]

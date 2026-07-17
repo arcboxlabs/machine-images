@@ -1,0 +1,99 @@
+name: Sync Images
+
+on:
+  schedule:
+    # Daily, after upstream's builds (~06:00 UTC) have landed.
+    - cron: "23 8 * * *"
+  push:
+    branches:
+      - master
+    paths:
+      - "mirror.toml"
+  workflow_dispatch:
+
+# One sync at a time: the run reads the published index and writes it back.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CDN_BASE_URL: https://image.arcboxcdn.com/linux
+
+jobs:
+  sync:
+    name: Mirror to B2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Fetch published index
+        run: |
+          # Cache-buster query: the index is served with max-age=60, but a
+          # plan against even a slightly stale index is only ever idempotent
+          # re-work, never data loss (add-only retention + single writer).
+          STATUS=$(curl -s -o state.json -w "%{http_code}" --max-time 30 \
+            "$CDN_BASE_URL/index.json?t=$(date +%s)")
+          case "$STATUS" in
+            200) echo "state: $(wc -c < state.json) bytes" ;;
+            404) echo "state: none (first publish)"; rm -f state.json ;;
+            *)   echo "::error::fetching index.json returned HTTP $STATUS"; exit 1 ;;
+          esac
+
+      - name: Sync
+        id: sync
+        run: |
+          ARGS=(--config mirror.toml --output dist --summary summary.json)
+          [ -f state.json ] && ARGS+=(--state-file state.json)
+          ./target/release/machine-images sync "${ARGS[@]}"
+          NEW=$(jq -r .new_versions summary.json)
+          echo "new_versions=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Verify staging
+        if: steps.sync.outputs.new_versions != '0'
+        run: ./target/release/machine-images verify --dir dist
+
+      - name: Publish to B2
+        if: steps.sync.outputs.new_versions != '0'
+        uses: arcboxlabs/actions/b2-publish@v1
+        with:
+          key-id: ${{ secrets.B2_APPLICATION_KEY_ID }}
+          key: ${{ secrets.B2_APPLICATION_KEY }}
+          bucket: arcboxcdn-image
+          source-dir: dist
+          destination: linux
+          index-files: index.json
+          strict-verify: "true"
+          verify-urls: |
+            https://image.arcboxcdn.com/linux/index.json
+
+      - name: Upload summary artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sync-summary
+          path: |
+            summary.json
+            dist/index.json
+          if-no-files-found: ignore
+          retention-days: 14
