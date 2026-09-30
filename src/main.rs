@@ -1,5 +1,6 @@
 //! CLI entry point.
 
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
@@ -38,6 +39,10 @@ enum Command {
         /// Override the `updated_at` timestamp (testing).
         #[arg(long)]
         now: Option<String>,
+        /// Override `mirror.keep_versions` for this run. Bootstrapping an empty
+        /// CDN with `1` keeps the first publish within a runner's disk.
+        #[arg(long)]
+        keep_versions: Option<NonZeroUsize>,
     },
     /// Verify a staging directory against its manifests and index.
     Verify {
@@ -55,8 +60,12 @@ fn main() -> Result<()> {
             state_file,
             summary,
             now,
+            keep_versions,
         } => {
-            let config = Config::load(&config)?;
+            let mut config = Config::load(&config)?;
+            if let Some(keep) = keep_versions {
+                config.mirror.keep_versions = keep.get();
+            }
             let state = match &state_file {
                 Some(path) => serde_json::from_str(&fs_err::read_to_string(path)?)
                     .with_context(|| format!("parse state {}", path.display()))?,

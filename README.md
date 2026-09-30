@@ -76,7 +76,9 @@ merged index.
   builds the tool, plans against the live index, stages new builds, and
   publishes via [`arcboxlabs/actions/r2-publish`](https://github.com/arcboxlabs/actions).
   Uploads are ordered blobs-first, index-last, so a fresh index never points
-  at missing objects.
+  at missing objects. Seeding an empty CDN: dispatch it with
+  `keep_versions = 1` so the first run mirrors only the newest build per
+  stream; the daily syncs fill the index back up to `keep_versions`.
 
 Required repository configuration (an R2 API token with Object Read & Write
 on the `arcboxcdn-image` bucket):

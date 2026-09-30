@@ -10,6 +10,14 @@ on:
     paths:
       - "mirror.toml"
   workflow_dispatch:
+    inputs:
+      keep_versions:
+        description: >-
+          Override mirror.keep_versions for this run. Use 1 to bootstrap an
+          empty CDN: mirroring four builds of every stream at once overflows
+          the runner's disk.
+        required: false
+        type: string
 
 # One sync at a time: the run reads the published index and writes it back.
 concurrency:
@@ -65,6 +73,8 @@ jobs:
         run: |
           ARGS=(--config mirror.toml --output dist --summary summary.json)
           [ -f state.json ] && ARGS+=(--state-file state.json)
+          KEEP="${{ inputs.keep_versions }}"
+          [ -n "$KEEP" ] && ARGS+=(--keep-versions "$KEEP")
           ./target/release/machine-images sync "${ARGS[@]}"
           NEW=$(jq -r .new_versions summary.json)
           echo "new_versions=$NEW" >> "$GITHUB_OUTPUT"
