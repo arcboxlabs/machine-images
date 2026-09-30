@@ -85,7 +85,7 @@ jobs:
 
       - name: Publish to R2
         if: steps.sync.outputs.new_versions != '0'
-        uses: arcboxlabs/actions/r2-publish@v1
+        uses: arcboxlabs/actions/r2-publish@v2
         with:
           account-id: ${{ vars.R2_ACCOUNT_ID }}
           access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
