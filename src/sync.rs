@@ -2,7 +2,7 @@
 //!
 //! Reads the upstream catalog, mirrors every configured product whose newest
 //! build is not yet in the published index, and writes a staging directory
-//! ready for `b2-publish`:
+//! ready for `r2-publish`:
 //!
 //! ```text
 //! out/

@@ -24,7 +24,7 @@ env:
 
 jobs:
   sync:
-    name: Mirror to B2
+    name: Mirror to R2
     runs-on: ubuntu-latest
 
     steps:
@@ -73,12 +73,13 @@ jobs:
         if: steps.sync.outputs.new_versions != '0'
         run: ./target/release/machine-images verify --dir dist
 
-      - name: Publish to B2
+      - name: Publish to R2
         if: steps.sync.outputs.new_versions != '0'
-        uses: arcboxlabs/actions/b2-publish@v1
+        uses: arcboxlabs/actions/r2-publish@v1
         with:
-          key-id: ${{ secrets.B2_APPLICATION_KEY_ID }}
-          key: ${{ secrets.B2_APPLICATION_KEY }}
+          account-id: ${{ vars.R2_ACCOUNT_ID }}
+          access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           bucket: arcboxcdn-image
           source-dir: dist
           destination: linux

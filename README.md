@@ -74,14 +74,15 @@ merged index.
   busybox build from the real upstream.
 - `sync.yml` — daily cron (plus `mirror.toml` pushes and manual dispatch):
   builds the tool, plans against the live index, stages new builds, and
-  publishes via [`arcboxlabs/actions/b2-publish`](https://github.com/arcboxlabs/actions).
+  publishes via [`arcboxlabs/actions/r2-publish`](https://github.com/arcboxlabs/actions).
   Uploads are ordered blobs-first, index-last, so a fresh index never points
   at missing objects.
 
-Required repository secrets (a B2 application key scoped to the
-`arcboxcdn-image` bucket):
+Required repository configuration (an R2 API token with Object Read & Write
+on the `arcboxcdn-image` bucket):
 
-| Secret | Value |
-| --- | --- |
-| `B2_APPLICATION_KEY_ID` | B2 application key ID |
-| `B2_APPLICATION_KEY` | B2 application key secret |
+| Name | Kind | Value |
+| --- | --- | --- |
+| `R2_ACCOUNT_ID` | variable | Cloudflare account ID that owns the bucket |
+| `R2_ACCESS_KEY_ID` | secret | R2 S3 Access Key ID |
+| `R2_SECRET_ACCESS_KEY` | secret | R2 S3 Secret Access Key |
